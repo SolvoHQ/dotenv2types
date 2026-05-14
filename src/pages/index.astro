@@ -214,7 +214,7 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx`;
             <span>.env</span>
             <span id="size" class="status"></span>
           </div>
-          <textarea id="input" spellcheck="false" placeholder={sample}></textarea>
+          <textarea id="input" spellcheck="false" placeholder={sample}>{sample}</textarea>
         </div>
       </div>
 
@@ -228,21 +228,21 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx`;
       <div class="row output-row">
         <div class="panel">
           <div class="panel-head">
-            <span>env.ts (Zod schema)</span>
+            <span>env.ts — save as src/env.ts</span>
             <button class="copy-btn" data-target="schema-out" type="button">Copy</button>
           </div>
           <pre id="schema-out"><span class="ph">// Zod-validated env.ts will appear here</span></pre>
         </div>
         <div class="panel">
           <div class="panel-head">
-            <span>types.ts (types-only)</span>
+            <span>types.ts — save as src/env-types.ts</span>
             <button class="copy-btn" data-target="types-out" type="button">Copy</button>
           </div>
           <pre id="types-out"><span class="ph">// Type-only Env will appear here</span></pre>
         </div>
         <div class="panel">
           <div class="panel-head">
-            <span>.env.example</span>
+            <span>.env.example — replace your existing one</span>
             <button class="copy-btn" data-target="example-out" type="button">Copy</button>
           </div>
           <pre id="example-out"><span class="ph"># .env.example with comments will appear here</span></pre>
