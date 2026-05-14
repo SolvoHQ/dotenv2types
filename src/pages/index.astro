@@ -208,6 +208,58 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx`;
         font-size: 13px;
       }
       .usage-body pre:last-child { margin-bottom: 0; }
+      .waitlist {
+        margin-top: 18px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .waitlist-label {
+        display: block;
+        color: var(--fg);
+        font-size: 13px;
+        margin-bottom: 10px;
+      }
+      .waitlist-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .waitlist input[type="email"] {
+        flex: 1 1 240px;
+        background: var(--panel-2);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 9px 12px;
+        font: inherit;
+        font-size: 13px;
+        outline: none;
+      }
+      .waitlist input[type="email"]:focus { border-color: var(--accent); }
+      .waitlist button {
+        background: var(--accent);
+        color: var(--accent-fg);
+        border: none;
+        padding: 9px 16px;
+        font: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .waitlist button:hover:not(:disabled) { filter: brightness(1.1); }
+      .waitlist button:disabled { opacity: 0.5; cursor: wait; }
+      .waitlist .done {
+        color: var(--success);
+        font-size: 13px;
+        padding: 4px 0;
+      }
     </style>
   </head>
   <body>
@@ -264,6 +316,26 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx`;
           </div>
           <pre id="example-out"><span class="ph"># .env.example with comments will appear here</span></pre>
         </div>
+      </div>
+
+      <div class="waitlist" id="waitlist">
+        <form id="waitlist-form" novalidate>
+          <label for="waitlist-email" class="waitlist-label">
+            v1.2 coming soon — secret-detection upgrade + service-grouping UI + .env.example round-trip. Email me one time when it ships:
+          </label>
+          <div class="waitlist-row">
+            <input
+              type="email"
+              id="waitlist-email"
+              name="email"
+              placeholder="you@company.com"
+              autocomplete="email"
+              required
+            />
+            <button type="submit" id="waitlist-btn">Notify me</button>
+          </div>
+          <span class="status" id="waitlist-status">Single email when v1.2 ships. No drip, no marketing.</span>
+        </form>
       </div>
 
       <details class="usage">
@@ -380,6 +452,11 @@ console.log(`Server starting on port ${'$'}{'{'}env.PORT{'}'}`);</pre>
           try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch (_) {}
           try { window.dispatchEvent(new CustomEvent('dotenv2types:' + name, { detail })); } catch (_) {}
           try { window.va && window.va('event', { name, data: detail }); } catch (_) {}
+          try {
+            if (window.goatcounter && typeof window.goatcounter.count === 'function') {
+              window.goatcounter.count({ path: name, event: true, title: name });
+            }
+          } catch (_) {}
         }
 
         document.querySelectorAll('.copy-btn').forEach((btn) => {
@@ -423,6 +500,50 @@ console.log(`Server starting on port ${'$'}{'{'}env.PORT{'}'}`);</pre>
             setTimeout(() => { shareBtn.textContent = orig; shareBtn.classList.remove('copied'); }, 1400);
           } catch (e) {
             shareBtn.textContent = 'Copy failed';
+          }
+        });
+
+        const waitlistForm = document.getElementById('waitlist-form');
+        const waitlistEmail = document.getElementById('waitlist-email');
+        const waitlistBtn = document.getElementById('waitlist-btn');
+        const waitlistStatus = document.getElementById('waitlist-status');
+        const waitlistContainer = document.getElementById('waitlist');
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        waitlistForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = (waitlistEmail.value || '').trim();
+          if (!email || !EMAIL_RE.test(email)) {
+            waitlistStatus.textContent = 'Please enter a valid email.';
+            waitlistStatus.classList.add('error');
+            return;
+          }
+          waitlistStatus.classList.remove('error');
+          waitlistBtn.disabled = true;
+          waitlistStatus.textContent = 'Sending…';
+          try {
+            const res = await fetch('/api/waitlist', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ email }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              if (res.status === 429) {
+                waitlistStatus.textContent = "You've hit 5 signups / hour. Try again later.";
+              } else {
+                waitlistStatus.textContent = (data && data.error) || ('HTTP ' + res.status);
+              }
+              waitlistStatus.classList.add('error');
+              waitlistBtn.disabled = false;
+              return;
+            }
+            track('waitlist_signup', {});
+            waitlistContainer.innerHTML = '<div class="done">Thanks — we’ll email you once when v1.2 ships.</div>';
+          } catch (err) {
+            waitlistStatus.textContent = 'Network error: ' + err.message;
+            waitlistStatus.classList.add('error');
+            waitlistBtn.disabled = false;
           }
         });
 
