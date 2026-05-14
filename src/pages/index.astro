@@ -1,0 +1,429 @@
+---
+// dotenv2types — paste .env → typed env.ts + Zod
+const sample = `DATABASE_URL=postgres://user:pass@localhost:5432/mydb
+PORT=8080
+DEBUG=true
+STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>dotenv2types — Paste .env → Typed env.ts + Zod</title>
+    <meta
+      name="description"
+      content="Paste a .env, get production-shaped env.ts with Zod schema, types-only file, and .env.example with comments. No signup. LLM-named."
+    />
+    <link rel="canonical" href="https://dotenv2types.vercel.app/" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E" />
+    <script is:inline>
+      window.va = window.va || function (...a) { (window.vaq = window.vaq || []).push(a); };
+    </script>
+    <script>
+      import { inject } from '@vercel/analytics';
+      inject();
+    </script>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --panel-2: #1c2128;
+        --border: #30363d;
+        --fg: #e6edf3;
+        --fg-dim: #8b949e;
+        --accent: #f7df1e;
+        --accent-fg: #0d1117;
+        --code: #d2a8ff;
+        --error: #f85149;
+        --success: #3fb950;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font: 14px/1.5 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        min-height: 100vh;
+      }
+      .wrap { max-width: 1400px; margin: 0 auto; padding: 24px 20px 80px; }
+      header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; gap: 8px; }
+      h1 {
+        font-size: 22px;
+        margin: 0;
+        letter-spacing: -0.01em;
+        font-weight: 700;
+      }
+      h1 .y { color: var(--accent); }
+      .tag { color: var(--fg-dim); font-size: 13px; }
+      .tag a { color: var(--fg-dim); border-bottom: 1px dotted var(--fg-dim); text-decoration: none; }
+      .tag a:hover { color: var(--fg); }
+      .pitch { color: var(--fg-dim); font-size: 13px; margin: 0 0 18px; }
+      .row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+      @media (min-width: 900px) {
+        .row.input-row { grid-template-columns: 1fr; }
+      }
+      @media (min-width: 1200px) {
+        .row.output-row { grid-template-columns: 1fr 1fr 1fr; }
+      }
+      .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+      .panel-head {
+        background: var(--panel-2);
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--fg-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .copy-btn {
+        background: transparent;
+        color: var(--fg-dim);
+        border: 1px solid var(--border);
+        padding: 3px 10px;
+        font-size: 11px;
+        font-family: inherit;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .copy-btn:hover { color: var(--fg); border-color: var(--fg-dim); }
+      .copy-btn.copied { color: var(--success); border-color: var(--success); }
+      textarea, pre {
+        margin: 0;
+        padding: 14px;
+        font: inherit;
+        background: var(--panel);
+        color: var(--fg);
+        border: none;
+        outline: none;
+        width: 100%;
+        resize: vertical;
+      }
+      textarea { min-height: 200px; }
+      pre { min-height: 300px; max-height: 60vh; overflow: auto; white-space: pre; }
+      .controls { display: flex; align-items: center; gap: 12px; margin: 12px 0 18px; flex-wrap: wrap; }
+      button.generate {
+        background: var(--accent);
+        color: var(--accent-fg);
+        border: none;
+        padding: 10px 22px;
+        font: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      button.generate:hover:not(:disabled) { filter: brightness(1.1); }
+      button.generate:disabled { opacity: 0.5; cursor: wait; }
+      button.secondary {
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--border);
+        padding: 9px 14px;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      button.secondary:hover:not(:disabled) { border-color: var(--fg-dim); background: var(--panel-2); }
+      button.secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.secondary.copied { color: var(--success); border-color: var(--success); }
+      .status { color: var(--fg-dim); font-size: 12px; }
+      .status.error { color: var(--error); }
+      .ph { color: var(--fg-dim); font-style: italic; padding: 14px; }
+      footer { margin-top: 32px; color: var(--fg-dim); font-size: 12px; text-align: center; }
+      footer a { color: var(--fg-dim); }
+      .kbd {
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+      }
+      details.usage {
+        margin-top: 18px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      details.usage > summary {
+        padding: 10px 14px;
+        background: var(--panel-2);
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--fg-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        list-style: none;
+      }
+      details.usage > summary::-webkit-details-marker { display: none; }
+      details.usage > summary::before { content: "▸ "; }
+      details.usage[open] > summary::before { content: "▾ "; }
+      details.usage:hover > summary { color: var(--fg); }
+      .usage-body { padding: 14px; color: var(--fg-dim); }
+      .usage-body p { margin: 0 0 10px; }
+      .usage-body code {
+        background: var(--panel-2);
+        padding: 1px 6px;
+        border-radius: 3px;
+        color: var(--code);
+        font: inherit;
+      }
+      .usage-body pre {
+        background: var(--panel-2);
+        padding: 10px 12px;
+        margin: 8px 0 14px;
+        border-radius: 4px;
+        min-height: 0;
+        color: var(--fg);
+        font-size: 13px;
+      }
+      .usage-body pre:last-child { margin-bottom: 0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>dotenv<span class="y">2types</span></h1>
+        <div class="tag">
+          <a href="https://github.com/SolvoHQ/dotenv2types" target="_blank" rel="noopener">github</a>
+          · <a href="https://jsontosdk.vercel.app/" target="_blank" rel="noopener">jsontosdk</a>
+        </div>
+      </header>
+      <p class="pitch">
+        Paste a <code>.env</code> → production-shaped <code>env.ts</code> with Zod schema, types-only file,
+        and <code>.env.example</code> with comments. No signup. LLM-named.
+        <span class="kbd">⌘</span>+<span class="kbd">Enter</span> to generate.
+      </p>
+
+      <div class="row input-row">
+        <div class="panel">
+          <div class="panel-head">
+            <span>.env</span>
+            <span id="size" class="status"></span>
+          </div>
+          <textarea id="input" spellcheck="false" placeholder={sample}></textarea>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="generate" id="gen" type="button">Generate</button>
+        <button class="secondary" id="try-example" type="button">Try example</button>
+        <button class="secondary" id="share-url" type="button">Share URL</button>
+        <span class="status" id="status">Up to 50 KB · 20 generations / hour / IP · free</span>
+      </div>
+
+      <div class="row output-row">
+        <div class="panel">
+          <div class="panel-head">
+            <span>env.ts (Zod schema)</span>
+            <button class="copy-btn" data-target="schema-out" type="button">Copy</button>
+          </div>
+          <pre id="schema-out"><span class="ph">// Zod-validated env.ts will appear here</span></pre>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <span>types.ts (types-only)</span>
+            <button class="copy-btn" data-target="types-out" type="button">Copy</button>
+          </div>
+          <pre id="types-out"><span class="ph">// Type-only Env will appear here</span></pre>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <span>.env.example</span>
+            <button class="copy-btn" data-target="example-out" type="button">Copy</button>
+          </div>
+          <pre id="example-out"><span class="ph"># .env.example with comments will appear here</span></pre>
+        </div>
+      </div>
+
+      <details class="usage">
+        <summary>Use these in your project</summary>
+        <div class="usage-body">
+          <p>1. Save the panels as <code>src/env.ts</code> (with Zod runtime), <code>src/env-types.ts</code> (types-only), and <code>.env.example</code> at your repo root.</p>
+          <p>2. Install Zod (peer-dep for the schema file):</p>
+          <pre>npm i zod</pre>
+          <p>3. Load + validate at app start:</p>
+          <pre>import {'{'} env {'}'} from "./env";
+
+console.log(`Server starting on port ${'$'}{'{'}env.PORT{'}'}`);</pre>
+          <p>If a required env var is missing or mis-typed, the import throws with the failing key — fail-fast at boot beats <code>process.env.X!</code> exploding in production.</p>
+        </div>
+      </details>
+
+      <footer>
+        Free tool · <a href="https://github.com/SolvoHQ/dotenv2types" target="_blank" rel="noopener">source on GitHub</a> · sister project: <a href="https://jsontosdk.vercel.app/" target="_blank" rel="noopener">jsontosdk</a>
+      </footer>
+    </div>
+
+    <script is:inline>
+      (function () {
+        const input = document.getElementById('input');
+        const genBtn = document.getElementById('gen');
+        const tryBtn = document.getElementById('try-example');
+        const shareBtn = document.getElementById('share-url');
+        const status = document.getElementById('status');
+        const sizeEl = document.getElementById('size');
+        const schemaOut = document.getElementById('schema-out');
+        const typesOut = document.getElementById('types-out');
+        const exampleOut = document.getElementById('example-out');
+        const MAX_BYTES = 50 * 1024;
+
+        function b64encode(s) {
+          return btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+        function b64decode(s) {
+          s = s.replace(/-/g, '+').replace(/_/g, '/');
+          while (s.length % 4) s += '=';
+          try { return decodeURIComponent(escape(atob(s))); } catch (e) { return null; }
+        }
+
+        function renderSize() {
+          const bytes = new TextEncoder().encode(input.value).length;
+          sizeEl.textContent = bytes ? `${bytes.toLocaleString()} bytes` : '';
+          sizeEl.classList.toggle('error', bytes > MAX_BYTES);
+        }
+
+        function setOutput(schema, types, example) {
+          schemaOut.textContent = schema;
+          typesOut.textContent = types;
+          exampleOut.textContent = example;
+        }
+
+        async function generate() {
+          const envText = input.value.trim();
+          if (!envText) {
+            status.textContent = 'Paste a .env first.';
+            status.classList.add('error');
+            return;
+          }
+          const bytes = new TextEncoder().encode(envText).length;
+          if (bytes > MAX_BYTES) {
+            status.textContent = `Input is ${bytes.toLocaleString()} bytes — max is ${MAX_BYTES.toLocaleString()}.`;
+            status.classList.add('error');
+            return;
+          }
+          if (!envText.includes('=')) {
+            status.textContent = 'No KEY=VALUE lines found — does this look like a .env?';
+            status.classList.add('error');
+            return;
+          }
+
+          genBtn.disabled = true;
+          status.classList.remove('error');
+          status.textContent = 'Generating…';
+          const t0 = performance.now();
+          try {
+            const res = await fetch('/api/generate', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ env: envText }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              if (res.status === 429) {
+                const m = (data && data.error || '').match(/~?(\d+)\s*m/);
+                status.textContent = m
+                  ? `You've hit 20 generations / hour. Try again in ~${m[1]}m.`
+                  : "You've hit 20 generations / hour. Try again in a bit.";
+              } else {
+                status.textContent = (data && data.error) || ('HTTP ' + res.status);
+              }
+              status.classList.add('error');
+              return;
+            }
+            setOutput(data.schema || '', data.types || '', data.example || '');
+            const ms = Math.round(performance.now() - t0);
+            status.textContent = `Generated in ${ms} ms.`;
+            try {
+              location.hash = 'payload=' + b64encode(envText);
+            } catch (e) { /* ignore */ }
+            track('generate_complete', { ms, bytes });
+          } catch (e) {
+            status.textContent = 'Network error: ' + e.message;
+            status.classList.add('error');
+          } finally {
+            genBtn.disabled = false;
+          }
+        }
+
+        function track(name, detail) {
+          try { window.dispatchEvent(new CustomEvent(name, { detail })); } catch (_) {}
+          try { window.dispatchEvent(new CustomEvent('dotenv2types:' + name, { detail })); } catch (_) {}
+          try { window.va && window.va('event', { name, data: detail }); } catch (_) {}
+        }
+
+        document.querySelectorAll('.copy-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const target = document.getElementById(btn.dataset.target);
+            const text = target.textContent || '';
+            if (!text || text.startsWith('// ') || text.startsWith('# ')) return;
+            try {
+              await navigator.clipboard.writeText(text);
+              const orig = btn.textContent;
+              btn.textContent = 'Copied';
+              btn.classList.add('copied');
+              setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1200);
+            } catch (e) {
+              btn.textContent = 'Copy failed';
+            }
+          });
+        });
+
+        input.addEventListener('input', renderSize);
+        input.addEventListener('keydown', (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            e.preventDefault();
+            generate();
+          }
+        });
+        genBtn.addEventListener('click', generate);
+
+        tryBtn.addEventListener('click', () => {
+          input.value = input.placeholder;
+          renderSize();
+          generate();
+        });
+
+        shareBtn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(location.href);
+            const orig = shareBtn.textContent;
+            shareBtn.textContent = 'Link copied';
+            shareBtn.classList.add('copied');
+            setTimeout(() => { shareBtn.textContent = orig; shareBtn.classList.remove('copied'); }, 1400);
+          } catch (e) {
+            shareBtn.textContent = 'Copy failed';
+          }
+        });
+
+        // restore from URL fragment if present
+        const hash = location.hash.replace(/^#/, '');
+        const params = new URLSearchParams(hash);
+        const payload = params.get('payload');
+        if (payload) {
+          const decoded = b64decode(payload);
+          if (decoded) {
+            input.value = decoded;
+            renderSize();
+            track('share_link_load', { bytes: new TextEncoder().encode(decoded).length });
+            status.textContent = 'Loaded from URL. Press Generate to run.';
+          }
+        }
+        renderSize();
+      })();
+    </script>
+  </body>
+</html>
